@@ -1,0 +1,12 @@
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (MSVC)
+    add_compile_options("/MP")
+#    add_compile_options("/experimental:module")
+#    add_compile_options("/std:c++latest")
+    add_definitions(-DUNICODE -D_UNICODE)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-DNOMINMAX)
+endif()
