@@ -32,3 +32,11 @@ Download FlyCude src and copy to 3rdparty.
 ## 06 - Meshshader
 
 ![06 - Meshshader](screenshots/Snipaste_2021-03-14_16-13-34.png)
+
+## 07 - VariableRateShading
+
+![07 - VariableRateShading](screenshots/Snipaste_2021-03-14_17-10-19.png)
+
+> **left**:  ShadingRate::k1x1
+> 
+> **right**: ShadingRate::k4x4
