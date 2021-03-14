@@ -20,3 +20,7 @@ Download FlyCude src and copy to 3rdparty.
 ## 03 - MultiPass renderer
 
 ![03 - MultiPass renderer](screenshots/Snipaste_2021-03-14_10-37-35.png)
+
+## 04 - Compute shader
+
+![04 - Compute shader](screenshots/Snipaste_2021-03-14_12-26-41.png)
