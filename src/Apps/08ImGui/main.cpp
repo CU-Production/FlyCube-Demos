@@ -73,6 +73,7 @@ int main(int argc, char* argv[])
     while (!app.PollEvents())
     {
         int32_t frameIndex = device->GetFrameIndex();
+        device->Wait(command_lists[frameIndex]->GetFenceValue());
         command_lists[frameIndex]->Reset();
         {
             // Main Pass

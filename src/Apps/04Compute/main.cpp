@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
         program.cs.cbuffer.computeUniformBlock.time = (float)glfwGetTime();
 
         int32_t frameIndex = device->GetFrameIndex();
+        device->Wait(command_lists[frameIndex]->GetFenceValue());
         command_lists[frameIndex]->Reset();
         command_lists[frameIndex]->BeginEvent("Compute Pass");
         command_lists[frameIndex]->UseProgram(program);
