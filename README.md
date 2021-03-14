@@ -16,3 +16,7 @@ Download FlyCude src and copy to 3rdparty.
 ![02 - texture & sampler](screenshots/Snipaste_2021-03-14_00-29-07.png)
 
 > model & texture is under `3rdparty/FlyCube/assets`
+
+## 03 - MultiPass renderer
+
+![03 - MultiPass renderer](screenshots/Snipaste_2021-03-14_10-37-35.png)
