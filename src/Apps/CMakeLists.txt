@@ -8,3 +8,6 @@ add_subdirectory(06MeshShader)
 add_subdirectory(07VariableRateShading)
 add_subdirectory(08ImGui)
 
+add_subdirectory(06-2BetterMeshShader)
+add_subdirectory(06-3AmplificationShader)
+
