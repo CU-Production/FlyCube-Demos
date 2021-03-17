@@ -11,3 +11,5 @@ add_subdirectory(08ImGui)
 add_subdirectory(06-2BetterMeshShader)
 add_subdirectory(06-3AmplificationShader)
 
+add_subdirectory(09DispatchIndirect)
+add_subdirectory(09-2DispatchIndirect)
