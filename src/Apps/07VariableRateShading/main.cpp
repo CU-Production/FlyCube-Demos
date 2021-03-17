@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
         command_list->IASetVertexBuffer(program.vs.ia.TEXCOORD, uv);
         command_list->Attach(program.ps.srv.diffuseTexture, diffuseTexture);
         command_list->Attach(program.ps.sampler.g_sampler, g_sampler);
-        command_list->DrawIndexed(6, 0, 0);
+        command_list->DrawIndexed(6, 1, 0, 0, 0);
 
         command_list->EndRenderPass();
         command_list->EndEvent();

@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
             command_lists[frameIndex]->Attach(program.ps.srv.diffuseTexture, diffuseTexture);
             command_lists[frameIndex]->Attach(program.ps.sampler.g_sampler, g_sampler);
             command_lists[frameIndex]->BeginRenderPass(render_pass_desc);
-            command_lists[frameIndex]->DrawIndexed(6, 0, 0);
+            command_lists[frameIndex]->DrawIndexed(6, 1, 0, 0, 0);
             command_lists[frameIndex]->EndRenderPass();
             command_lists[frameIndex]->EndEvent();
         }
