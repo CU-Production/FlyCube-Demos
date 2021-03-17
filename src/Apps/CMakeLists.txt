@@ -13,3 +13,4 @@ add_subdirectory(06-3AmplificationShader)
 
 add_subdirectory(09DispatchIndirect)
 add_subdirectory(09-2DispatchIndirect)
+add_subdirectory(10DrawIndirect)
