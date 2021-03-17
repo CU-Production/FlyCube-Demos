@@ -3,7 +3,6 @@
 #include "RenderDevice/RenderDevice.h"
 #include "Texture/TextureLoader.h"
 
-#include "ProgramRef/RayTracing.h"
 #include "ProgramRef/Noise.h"
 
 int main(int argc, char* argv[])
