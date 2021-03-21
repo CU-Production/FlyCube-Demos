@@ -1,6 +1,12 @@
 // https://nvpro-samples.github.io/vk_mini_path_tracer/index.html
 // https://github.com/nvpro-samples/vk_mini_path_tracer/blob/main/vk_mini_path_tracer/shaders/raytrace.comp.glsl
 
+cbuffer resolution
+{
+    uint screenWidth;
+    uint screenHeight;
+};
+
 // Limit the kernel to trace at most 64 samples.
 #define NUM_SAMPLES 64;
 
@@ -20,7 +26,7 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
 {   
     // The resolution of the buffer, which in this case is a hardcoded vector
     // of 2 unsigned integers:
-    const uint2 resolution = uint2(512, 512);
+    const uint2 resolution = uint2(screenWidth, screenHeight);
 
     // Get the coordinates of the pixel for this invocation:
     //
