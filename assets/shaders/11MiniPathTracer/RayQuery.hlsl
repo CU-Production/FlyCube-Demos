@@ -15,8 +15,8 @@ cbuffer resolution
 
 RWTexture2D<float4> imageData;
 RaytracingAccelerationStructure tlas;
-Buffer<float3> Vertices;
-Buffer<uint> Indices;
+StructuredBuffer<float3> vertices;
+StructuredBuffer<uint> indices;
 
 [numthreads(8, 8, 1)]
 void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched by c++)
@@ -109,11 +109,49 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
     // a generated object
     if(rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
-        // Create a vec3(0, b.x, b.y)
-        pixelColor = float3(0.0, rayQuery.CommittedTriangleBarycentrics());
-        // Set the first element to 1 - b.x - b.y, setting pixelColor to
-        // (1 - b.x - b.y, b.x, b.y).
-        pixelColor.x = 1 - pixelColor.y - pixelColor.z;
+
+
+        // Get the ID of the triangle
+        const int primitiveID = rayQuery.CommittedPrimitiveIndex();
+
+        // Get the indices of the vertices of the triangle
+        const uint i0 = indices[3 * primitiveID + 0];
+        const uint i1 = indices[3 * primitiveID + 1];
+        const uint i2 = indices[3 * primitiveID + 2];
+
+        // Get the vertices of the triangle
+        const float3 v0 = vertices[i0];
+        const float3 v1 = vertices[i1];
+        const float3 v2 = vertices[i2];
+
+//        // Get the barycentric coordinates of the intersection
+//        float3 barycentrics = float3(0.0, rayQuery.CommittedTriangleBarycentrics());
+//        barycentrics.x    = 1.0 - barycentrics.y - barycentrics.z;
+//
+//        // Compute the position of the intersection in object space
+//        const float3 objectSpaceIntersection = barycentrics.x * v0 + barycentrics.y * v1 + barycentrics.z * v2;
+//
+//        // Return it as a color
+//        pixelColor = (0.5).xxx + 0.25 * objectSpaceIntersection;
+
+        // Compute the normal of the triangle in object space, using the right-hand
+        // rule. Since our transformation matrix is the identity, object space
+        // is the same as world space.
+        //    v2       .
+        //    |\       .
+        //    | \      .
+        //    |  \     .
+        //    |/  \    .
+        //    /    \   .
+        //   /|     \  .
+        //  L v0----v1 .
+        // n
+        const float3 objectNormal = normalize(cross(v1 - v0, v2 - v0));
+
+        // For this chapter, convert the normal into a visible color.
+        pixelColor = (0.5).xxx + 0.5 * objectNormal;
+
+
     }
     else
     {

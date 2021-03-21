@@ -70,6 +70,8 @@ int main(int argc, char* argv[])
         command_list->Attach(program.cs.cbv.resolution, program.cs.cbuffer.resolution);
         command_list->Attach(program.cs.uav.imageData, uav);
         command_list->Attach(program.cs.srv.tlas, top);
+        command_list->Attach(program.cs.srv.indices, indices);
+        command_list->Attach(program.cs.srv.vertices, positions);
         command_list->Dispatch((uint32_t(uavWidth) + 8 - 1)/8, (uint32_t(uavHeight) + 8 - 1)/8, 1);
         command_list->CopyTexture(uav, device->GetBackBuffer(i), { { (uint32_t)uavWidth, (uint32_t)uavHeight, 1 } });
         command_list->EndEvent();
