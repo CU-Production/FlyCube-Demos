@@ -99,7 +99,17 @@ HitInfo getObjectHitInfo(RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL
     // For the main tutorial, object space is the same as world space:
     result.worldNormal = objectNormal;
 
-    result.color = float3(0.7f, 0.7f, 0.7f);
+    result.color = float3(0.8f, 0.8f, 0.8f);
+
+    const float dotX = dot(result.worldNormal, float3(1.0, 0.0, 0.0));
+    if(dotX > 0.99)
+    {
+        result.color = float3(0.8, 0.0, 0.0);
+    }
+    else if(dotX < -0.99)
+    {
+        result.color = float3(0.0, 0.8, 0.0);
+    }
 
     return result;
 }
