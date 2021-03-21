@@ -50,3 +50,9 @@ Download FlyCude src and copy to 3rdparty.
 
 ## 10 - DrawIndirect
 ![10 - DrawIndirect](screenshots/Snipaste_2021-03-18_00-39-06.png)
+
+## 11 - MiniPathTracer
+
+![11 - MiniPathTracer](screenshots/Snipaste_2021-03-21_12-51-43.png)
+
+> A mini pathtracer using CS with RayQuery(inline raytracing)
