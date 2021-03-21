@@ -18,6 +18,22 @@ RaytracingAccelerationStructure tlas;
 StructuredBuffer<float3> vertices;
 StructuredBuffer<uint> indices;
 
+// Random number generation using pcg32i_random_t, using inc = 1. Our random state is a uint.
+uint stepRNG(uint rngState)
+{
+    return rngState * 747796405 + 1;
+}
+
+// Steps the RNG and returns a floating-point value between 0 and 1 inclusive.
+float stepAndOutputRNGFloat(inout uint rngState)
+{
+    // Condensed version of pcg_output_rxs_m_xs_32_32, with simple conversion to floating-point [0,1].
+    rngState  = stepRNG(rngState);
+    uint word = ((rngState >> ((rngState >> 28) + 4)) ^ rngState) * 277803737;
+    word      = (word >> 22) ^ word;
+    return float(word) / 4294967295.0f;
+}
+
 // Returns the color of the sky in a given direction (in linear color space)
 float3 skyColor(float3 direction)
 {
@@ -121,81 +137,96 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
     // +x axis points right, the +y axis points up, and the -z axis points into the screen.
     // The camera is located at (-0.001, 1, 6).
     const float3 cameraOrigin = float3(-0.001f, 1.0f, 6.0f);
-
-    // Rays always originate at the camera for now. In the future, they'll
-    // bounce around the scene.
-    float3 rayOrigin = cameraOrigin;
-
-    // Compute the direction of the ray for this pixel. To do this, we first
-    // transform the screen coordinates to look like this, where a is the
-    // aspect ratio (width/height) of the screen:
-    //           1
-    //    .------+------.
-    //    |      |      |
-    // -a + ---- 0 ---- + a
-    //    |      |      |
-    //    '------+------'
-    //          -1
-    const float2 screenUV = float2((2.0 * float(pixel.x) + 1.0 - resolution.x) / resolution.y,    //
-                                  -(2.0 * float(pixel.y) + 1.0 - resolution.y) / resolution.y);   // Flip the y axis
-
-    // Next, define the field of view by the vertical slope of the topmost rays,
-    // and create a ray direction:
+    // Define the field of view by the vertical slope of the topmost rays:
     const float fovVerticalSlope = 1.0 / 5.0;
-    float3 rayDirection = float3(fovVerticalSlope * screenUV.x, fovVerticalSlope * screenUV.y, -1.0);
-    rayDirection = normalize(rayDirection);
 
-    float3 accumulatedRayColor = float3(1.0, 1.0, 1.0);  // The amount of light that made it to the end of the current ray.
-    float3 pixelColor          = float3(0.0, 0.0, 0.0);
+    float3 summedPixelColor = float3(0.0, 0.0, 0.0);
 
-    // Limit the kernel to trace at most 32 segments.
-    for(int tracedSegments = 0; tracedSegments < NUM_TRACED_SEGMENTS; tracedSegments++)
+    // Limit the kernel to trace at most 64 samples.
+    for (int sampleIdx = 0; sampleIdx < NUM_SAMPLES; sampleIdx++)
     {
-        RayDesc rayDesc;
-        rayDesc.Origin = rayOrigin;        // Ray origin
-        rayDesc.Direction = rayDirection;  // Ray direction
-        rayDesc.TMin = 0.001;              // Minimum t-value
-        rayDesc.TMax = 10000.0;            // Maximum t-value
+        // Rays always originate at the camera for now. In the future, they'll
+        // bounce around the scene.
+        float3 rayOrigin = cameraOrigin;
 
-        RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rayQuery;
-        rayQuery.TraceRayInline(tlas,                  // Top-level acceleration structure
-                                RAY_FLAG_FORCE_OPAQUE, // Ray flags, https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#ray-flags
-                                0xFF,                  // 8-bit instance mask, here saying "trace against all instances"
-                                rayDesc);
+        // Compute the direction of the ray for this pixel. To do this, we first
+        // transform the screen coordinates to look like this, where a is the
+        // aspect ratio (width/height) of the screen:
+        //           1
+        //    .------+------.
+        //    |      |      |
+        // -a + ---- 0 ---- + a
+        //    |      |      |
+        //    '------+------'
+        //          -1
+        const float2 randomPixelCenter = float2(pixel) + float2(stepAndOutputRNGFloat(rngState), stepAndOutputRNGFloat(rngState));
+        const float2 screenUV          = float2((2.0 * randomPixelCenter.x - resolution.x) / resolution.y,    //
+                                               -(2.0 * randomPixelCenter.y - resolution.y) / resolution.y);  // Flip the y axis
 
-        // Start traversal, and loop over all ray-scene intersections. When this finishes,
-        // rayQuery stores a "committed" intersection, the closest intersection (if any).
-        while(rayQuery.Proceed())
+        // Next, define the field of view by the vertical slope of the topmost rays,
+        // and create a ray direction:
+        float3 rayDirection = float3(fovVerticalSlope * screenUV.x, fovVerticalSlope * screenUV.y, -1.0);
+        rayDirection = normalize(rayDirection);
+
+        float3 accumulatedRayColor = float3(1.0, 1.0, 1.0);  // The amount of light that made it to the end of the current ray.
+
+
+        // Limit the kernel to trace at most 32 segments.
+        for(int tracedSegments = 0; tracedSegments < NUM_TRACED_SEGMENTS; tracedSegments++)
         {
+            RayDesc rayDesc;
+            rayDesc.Origin = rayOrigin;        // Ray origin
+            rayDesc.Direction = rayDirection;  // Ray direction
+            rayDesc.TMin = 0.001;              // Minimum t-value
+            rayDesc.TMax = 10000.0;            // Maximum t-value
+
+            RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rayQuery;
+            rayQuery.TraceRayInline(tlas,                  // Top-level acceleration structure
+                                    RAY_FLAG_FORCE_OPAQUE, // Ray flags, https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#ray-flags
+                                    0xFF,                  // 8-bit instance mask, here saying "trace against all instances"
+                                    rayDesc);
+
+            // Start traversal, and loop over all ray-scene intersections. When this finishes,
+            // rayQuery stores a "committed" intersection, the closest intersection (if any).
+            while(rayQuery.Proceed())
+            {
+            }
+
+            // Get the type of committed (true) intersection - nothing, a triangle, or
+            // a generated object
+            if(rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+            {
+                // Ray hit a triangle
+                HitInfo hitInfo = getObjectHitInfo(rayQuery);
+
+                // Apply color absorption
+                accumulatedRayColor *= hitInfo.color;
+
+                // Flip the normal so it points against the ray direction:
+                hitInfo.worldNormal = faceforward(hitInfo.worldNormal, rayDirection, hitInfo.worldNormal);
+
+                // Start a new ray at the hit position, but offset it slightly along the normal:
+                rayOrigin = hitInfo.worldPosition + 0.0001 * hitInfo.worldNormal;
+
+                // Reflect the direction of the ray using the triangle normal:
+                rayDirection = reflect(rayDirection, hitInfo.worldNormal);
+            }
+            else
+            {
+                // Ray hit the sky
+                accumulatedRayColor *= skyColor(rayDirection);
+
+                // Sum this with the pixel's other samples.
+                // (Note that we treat a ray that didn't find a light source as if it had
+                // an accumulated color of (0, 0, 0)).
+                summedPixelColor += accumulatedRayColor;
+
+                break;
+            }
         }
 
-        // Get the type of committed (true) intersection - nothing, a triangle, or
-        // a generated object
-        if(rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-        {
-            // Ray hit a triangle
-            HitInfo hitInfo = getObjectHitInfo(rayQuery);
-
-            // Apply color absorption
-            accumulatedRayColor *= hitInfo.color;
-
-            // Flip the normal so it points against the ray direction:
-            hitInfo.worldNormal = faceforward(hitInfo.worldNormal, rayDirection, hitInfo.worldNormal);
-
-            // Start a new ray at the hit position, but offset it slightly along the normal:
-            rayOrigin = hitInfo.worldPosition + 0.0001 * hitInfo.worldNormal;
-
-            // Reflect the direction of the ray using the triangle normal:
-            rayDirection = reflect(rayDirection, hitInfo.worldNormal);
-        }
-        else
-        {
-            // Ray hit the sky
-            pixelColor = accumulatedRayColor * skyColor(rayDirection);
-        }
     }
 
-
-    // Give the pixel the color (t/10, t/10, t/10):
-    imageData[pixel] = float4(pixelColor, 1.0f);
+    // Give the pixel the color:
+    imageData[pixel] = float4(summedPixelColor / float(NUM_SAMPLES), 1.0f);
 }
