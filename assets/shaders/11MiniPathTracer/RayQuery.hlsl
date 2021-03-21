@@ -8,15 +8,85 @@ cbuffer resolution
 };
 
 // Limit the kernel to trace at most 64 samples.
-#define NUM_SAMPLES 64;
+#define NUM_SAMPLES 64
 
 // Limit the kernel to trace at most 32 segments.
-#define NUM_TRACED_SEGMENTS = 32;
+#define NUM_TRACED_SEGMENTS 32
 
 RWTexture2D<float4> imageData;
 RaytracingAccelerationStructure tlas;
 StructuredBuffer<float3> vertices;
 StructuredBuffer<uint> indices;
+
+// Returns the color of the sky in a given direction (in linear color space)
+float3 skyColor(float3 direction)
+{
+    // +y in world space is up, so:
+    if(direction.y > 0.0f)
+    {
+        return lerp(float3(1.0f, 1.0f, 1.0f), float3(0.25f, 0.5f, 1.0f), direction.y);
+    }
+    else
+    {
+        return float3(0.03f, 0.03f, 0.03f);
+    }
+}
+
+struct HitInfo
+{
+    float3 color;
+    float3 worldPosition;
+    float3 worldNormal;
+};
+
+HitInfo getObjectHitInfo(RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rayQuery)
+{
+    HitInfo result;
+
+    // Get the ID of the triangle
+    const int primitiveID = rayQuery.CommittedPrimitiveIndex();
+
+    // Get the indices of the vertices of the triangle
+    const uint i0 = indices[3 * primitiveID + 0];
+    const uint i1 = indices[3 * primitiveID + 1];
+    const uint i2 = indices[3 * primitiveID + 2];
+
+    // Get the vertices of the triangle
+    const float3 v0 = vertices[i0];
+    const float3 v1 = vertices[i1];
+    const float3 v2 = vertices[i2];
+
+    // Compute the normal of the triangle in object space, using the right-hand
+    // rule. Since our transformation matrix is the identity, object space
+    // is the same as world space.
+    //    v2       .
+    //    |\       .
+    //    | \      .
+    //    |  \     .
+    //    |/  \    .
+    //    /    \   .
+    //   /|     \  .
+    //  L v0----v1 .
+    // n
+    //const float3 objectNormal = normalize(cross(v1 - v0, v2 - v0));
+    const float3 objectNormal = normalize(cross(v2 - v0, v1 - v0));
+
+    // Get the barycentric coordinates of the intersection
+    float3 barycentrics = float3(0.0, rayQuery.CommittedTriangleBarycentrics());
+    barycentrics.x    = 1.0 - barycentrics.y - barycentrics.z;
+
+    // Compute the coordinates of the intersection
+    const float3 objectPos = v0 * barycentrics.x + v1 * barycentrics.y + v2 * barycentrics.z;
+    // For the main tutorial, object space is the same as world space:
+    result.worldPosition = objectPos;
+
+    // For the main tutorial, object space is the same as world space:
+    result.worldNormal = objectNormal;
+
+    result.color = float3(0.7f, 0.7f, 0.7f);
+
+    return result;
+}
 
 [numthreads(8, 8, 1)]
 void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched by c++)
@@ -52,14 +122,10 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
     // The camera is located at (-0.001, 1, 6).
     const float3 cameraOrigin = float3(-0.001f, 1.0f, 6.0f);
 
-
-    // The sum of the colors of all of the samples.
-    float3 summedPixelColor = (0.0f).xxx;
-
-
     // Rays always originate at the camera for now. In the future, they'll
     // bounce around the scene.
     float3 rayOrigin = cameraOrigin;
+
     // Compute the direction of the ray for this pixel. To do this, we first
     // transform the screen coordinates to look like this, where a is the
     // aspect ratio (width/height) of the screen:
@@ -77,87 +143,56 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
     // and create a ray direction:
     const float fovVerticalSlope = 1.0 / 5.0;
     float3 rayDirection = float3(fovVerticalSlope * screenUV.x, fovVerticalSlope * screenUV.y, -1.0);
+    rayDirection = normalize(rayDirection);
 
-    // Trace the ray and see if and where it intersects the scene!
-    // First, initialize a ray query object:
+    float3 accumulatedRayColor = float3(1.0, 1.0, 1.0);  // The amount of light that made it to the end of the current ray.
+    float3 pixelColor          = float3(0.0, 0.0, 0.0);
 
-    RayDesc rayDesc;
-    rayDesc.Origin = rayOrigin;        // Ray origin
-    rayDesc.Direction = rayDirection;  // Ray direction
-    rayDesc.TMin = 0.001;              // Minimum t-value
-    rayDesc.TMax = 10000.0;            // Maximum t-value
-
-    RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rayQuery;
-    rayQuery.TraceRayInline(tlas,                  // Top-level acceleration structure
-                            RAY_FLAG_FORCE_OPAQUE, // Ray flags, https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#ray-flags
-                            0xFF,                  // 8-bit instance mask, here saying "trace against all instances"
-                            rayDesc);
-
-    // Start traversal, and loop over all ray-scene intersections. When this finishes,
-    // rayQuery stores a "committed" intersection, the closest intersection (if any).
-    while(rayQuery.Proceed())
+    // Limit the kernel to trace at most 32 segments.
+    for(int tracedSegments = 0; tracedSegments < NUM_TRACED_SEGMENTS; tracedSegments++)
     {
-    }
+        RayDesc rayDesc;
+        rayDesc.Origin = rayOrigin;        // Ray origin
+        rayDesc.Direction = rayDirection;  // Ray direction
+        rayDesc.TMin = 0.001;              // Minimum t-value
+        rayDesc.TMax = 10000.0;            // Maximum t-value
 
-    // Get the t-value of the intersection (if there's no intersection, this will
-    // be tMax = 10000.0). "true" says "get the committed intersection."
-    //const float t = rayQueryGetIntersectionTEXT(rayQuery, true);
-    const float t = rayQuery.CommittedRayT();
+        RayQuery<RAY_FLAG_FORCE_OPAQUE|RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rayQuery;
+        rayQuery.TraceRayInline(tlas,                  // Top-level acceleration structure
+                                RAY_FLAG_FORCE_OPAQUE, // Ray flags, https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#ray-flags
+                                0xFF,                  // 8-bit instance mask, here saying "trace against all instances"
+                                rayDesc);
 
-    float3 pixelColor;
-    // Get the type of committed (true) intersection - nothing, a triangle, or
-    // a generated object
-    if(rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-    {
+        // Start traversal, and loop over all ray-scene intersections. When this finishes,
+        // rayQuery stores a "committed" intersection, the closest intersection (if any).
+        while(rayQuery.Proceed())
+        {
+        }
 
+        // Get the type of committed (true) intersection - nothing, a triangle, or
+        // a generated object
+        if(rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+        {
+            // Ray hit a triangle
+            HitInfo hitInfo = getObjectHitInfo(rayQuery);
 
-        // Get the ID of the triangle
-        const int primitiveID = rayQuery.CommittedPrimitiveIndex();
+            // Apply color absorption
+            accumulatedRayColor *= hitInfo.color;
 
-        // Get the indices of the vertices of the triangle
-        const uint i0 = indices[3 * primitiveID + 0];
-        const uint i1 = indices[3 * primitiveID + 1];
-        const uint i2 = indices[3 * primitiveID + 2];
+            // Flip the normal so it points against the ray direction:
+            hitInfo.worldNormal = faceforward(hitInfo.worldNormal, rayDirection, hitInfo.worldNormal);
 
-        // Get the vertices of the triangle
-        const float3 v0 = vertices[i0];
-        const float3 v1 = vertices[i1];
-        const float3 v2 = vertices[i2];
+            // Start a new ray at the hit position, but offset it slightly along the normal:
+            rayOrigin = hitInfo.worldPosition + 0.0001 * hitInfo.worldNormal;
 
-//        // Get the barycentric coordinates of the intersection
-//        float3 barycentrics = float3(0.0, rayQuery.CommittedTriangleBarycentrics());
-//        barycentrics.x    = 1.0 - barycentrics.y - barycentrics.z;
-//
-//        // Compute the position of the intersection in object space
-//        const float3 objectSpaceIntersection = barycentrics.x * v0 + barycentrics.y * v1 + barycentrics.z * v2;
-//
-//        // Return it as a color
-//        pixelColor = (0.5).xxx + 0.25 * objectSpaceIntersection;
-
-        // Compute the normal of the triangle in object space, using the right-hand
-        // rule. Since our transformation matrix is the identity, object space
-        // is the same as world space.
-        //    v2       .
-        //    |\       .
-        //    | \      .
-        //    |  \     .
-        //    |/  \    .
-        //    /    \   .
-        //   /|     \  .
-        //  L v0----v1 .
-        // n
-        //const float3 objectNormal = normalize(cross(v1 - v0, v2 - v0));
-        const float3 objectNormal = normalize(cross(v2 - v0, v1 - v0));
-
-        // For this chapter, convert the normal into a visible color.
-        pixelColor = (0.5).xxx + 0.5 * objectNormal;
-
-
-    }
-    else
-    {
-        // Ray hit the sky
-        pixelColor = float3(0.0, 0.0, 0.5);
+            // Reflect the direction of the ray using the triangle normal:
+            rayDirection = reflect(rayDirection, hitInfo.worldNormal);
+        }
+        else
+        {
+            // Ray hit the sky
+            pixelColor = accumulatedRayColor * skyColor(rayDirection);
+        }
     }
 
 
