@@ -146,7 +146,8 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
         //   /|     \  .
         //  L v0----v1 .
         // n
-        const float3 objectNormal = normalize(cross(v1 - v0, v2 - v0));
+        //const float3 objectNormal = normalize(cross(v1 - v0, v2 - v0));
+        const float3 objectNormal = normalize(cross(v2 - v0, v1 - v0));
 
         // For this chapter, convert the normal into a visible color.
         pixelColor = (0.5).xxx + 0.5 * objectNormal;
