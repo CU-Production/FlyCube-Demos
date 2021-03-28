@@ -60,3 +60,7 @@ Download FlyCude src and copy to 3rdparty.
 ## 13 - ComputeParticles
 
 ![13 - ComputeParticles](screenshots/Snipaste_2021-03-28_18-31-28.png)
+
+## 14 - PureCSPathTracer
+
+![14 - PureCSPathTracer](screenshots/Snipaste_2021-03-28_23-55-07.png)

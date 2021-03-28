@@ -19,3 +19,5 @@ add_subdirectory(11MiniPathTracer)
 
 add_subdirectory(12Instancing)
 add_subdirectory(13ComputeParticles)
+
+add_subdirectory(14PureCSPathTracer)

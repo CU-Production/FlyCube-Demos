@@ -41,5 +41,31 @@ void MainCS(uint3 Gid  : SV_GroupID,          // current group index (dispatched
         UpdateParticles[index].position += UpdateParticles[index].velocity * deltaTime;
         UpdateParticles[index].velocity += gravity * deltaTime;
         UpdateParticles[index].lifetime -= deltaTime;
+
+        if (UpdateParticles[index].position.y < 0)
+        {
+            UpdateParticles[index].position.y = 0.0f;
+            UpdateParticles[index].velocity.y *= -1.0f;
+        }
+        else if (UpdateParticles[index].position.x < -3.0)
+        {
+            UpdateParticles[index].position.x = -3.0f;
+            UpdateParticles[index].velocity.x *= -1.0f;
+        }
+        else if (UpdateParticles[index].position.x > 3.0)
+        {
+            UpdateParticles[index].position.x = 3.0f;
+            UpdateParticles[index].velocity.x *= -1.0f;
+        }
+        else if (UpdateParticles[index].position.z < -3.0)
+        {
+            UpdateParticles[index].position.z = -3.0f;
+            UpdateParticles[index].velocity.z *= -1.0f;
+        }
+        else if (UpdateParticles[index].position.z > 3.0)
+        {
+            UpdateParticles[index].position.z = 3.0f;
+            UpdateParticles[index].velocity.z *= -1.0f;
+        }
     }
 }
