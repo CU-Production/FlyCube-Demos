@@ -59,8 +59,4 @@ Download FlyCude src and copy to 3rdparty.
 
 ## 13 - ComputeParticles
 
-<figure class="video_container">
-  <video controls="true" allowfullscreen="true" poster="screenshots/Snipaste_2021-03-28_18-31-28.png">
-    <source src="screenshots/20210328182757.mp4" type="video/mp4">
-  </video>
-</figure>
+![13 - ComputeParticles](screenshots/Snipaste_2021-03-28_18-31-28.png)
