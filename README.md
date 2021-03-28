@@ -56,3 +56,11 @@ Download FlyCude src and copy to 3rdparty.
 ![11 - MiniPathTracer](screenshots/Snipaste_2021-03-21_13-06-09.png)
 
 > A mini pathtracer using CS with RayQuery(inline raytracing)
+
+## 13 - ComputeParticles
+
+<figure class="video_container">
+  <video controls="true" allowfullscreen="true" poster="screenshots/Snipaste_2021-03-28_18-31-28.png">
+    <source src="screenshots/20210328182757.mp4" type="video/mp4">
+  </video>
+</figure>

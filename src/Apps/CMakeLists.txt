@@ -18,3 +18,4 @@ add_subdirectory(10DrawIndirect)
 add_subdirectory(11MiniPathTracer)
 
 add_subdirectory(12Instancing)
+add_subdirectory(13ComputeParticles)
