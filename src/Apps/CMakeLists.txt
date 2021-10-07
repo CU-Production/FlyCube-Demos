@@ -25,3 +25,4 @@ add_subdirectory(14PureCSPathTracer)
 add_subdirectory(15FireAnime)
 
 add_subdirectory(16Raymarching)
+add_subdirectory(16-2RaymarchingShadow)

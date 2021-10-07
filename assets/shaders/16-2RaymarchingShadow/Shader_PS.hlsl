@@ -1,6 +1,7 @@
 // The MIT License
 // Copyright 2019 Inigo Quilez
 // https://www.shadertoy.com/view/wsSGDG
+// https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 
 struct VS_OUTPUT
 {
@@ -21,6 +22,8 @@ cbuffer settings
     bool bShowRaymarchingResult;
     bool bShowPos;
     bool bShowNormal;
+    bool bUseShadow;
+    float softShadowBias;
 };
 
 float sdSphere( float3 p, float s )
@@ -28,35 +31,30 @@ float sdSphere( float3 p, float s )
     return length(p) - s;
 }
 
-float sdOctahedron(float3 p, float s)
+float sdPlane( float3 p, float h )
 {
-    p = abs(p);
-    float m = p.x + p.y + p.z - s;
-    float3 r = 3.0*p - m;
+  // n must be normalized
+  return -p.y + h;
+}
 
-#if 1
-    // filbs111's version (see comments)
-    float3 o = min(r, 0.0);
-    o = max(r*2.0 - o*3.0 + (o.x+o.y+o.z), 0.0);
-    return length(p - s*o/(o.x+o.y+o.z));
-#else
-    // my original version
-	float3 q;
-         if( r.x < 0.0 ) q = p.xyz;
-    else if( r.y < 0.0 ) q = p.yzx;
-    else if( r.z < 0.0 ) q = p.zxy;
-    else return m*0.57735027;
-    float k = clamp(0.5*(q.z-q.y+s),0.0,s);
-    return length(float3(q.x,q.y-s+k,q.z-k));
-#endif
+float sdPlane( float3 p, float3 n, float h )
+{
+  // n must be normalized
+  return dot(p,n) + h;
+}
+
+float2 opU( float2 d1, float2 d2 )
+{
+	return (d1.x<d2.x) ? d1 : d2;
 }
 
 float map( in float3 pos )
 {
-//     float rad = 0.1*(0.5+0.5*sin(iTime*2.0));
-//     return sdOctahedron(pos,0.5-rad) - rad;
-
-    return sdSphere(pos, 0.5);
+//     return sdSphere(pos, 0.5);
+//     return sdPlane(pos, float3(0.0, -1.0, 0.0), 0.5);
+    float2 d1 = float2(sdSphere(pos, 0.5), 1.0);
+    float2 d2 = float2(sdPlane(pos, 0.5), 1.0);
+    return opU(d1, d2).x;
 }
 
 // http://iquilezles.org/www/articles/normalsSDF/normalsSDF.htm
@@ -68,8 +66,25 @@ float3 calcNormal( in float3 pos )
 				        	e.yyx*map( pos + e.yyx*eps ) +
 					        e.yxy*map( pos + e.yxy*eps ) +
 					        e.xxx*map( pos + e.xxx*eps ) );
-	res.y = -res.y;
+	res.y = -res.y; // HLSL need flip Y
 	return res;
+}
+
+float softShadow ( in float3 ro, in float3 rd )
+{
+    float res = 1.0;
+
+    rd.y *= -1.0;
+
+    [loop]
+    for (float t = 0.1; t < 8.0;)
+    {
+        float h = map(ro + t * rd);
+        if (h < 0.001) return 0.0;
+        res = min(res, softShadowBias * h/t);
+        t += h;
+    }
+    return res;
 }
 
 float4 mainPS(VS_OUTPUT input) : SV_TARGET
@@ -93,7 +108,7 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
         return float4(rd, 1.0);
 
     // raymarch
-    const float tmax = 3.0;
+    const float tmax = 10.0;
     float t = 0.0;
 
     [loop]
@@ -111,7 +126,15 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
     {
         float3 pos = ro + t*rd;
         float3 nor = calcNormal(pos);
-        float dif = clamp( dot(nor,float3(0.7,0.6,0.4)), 0.0, 1.0 );
+        float3 light = float3(0.7,0.6,0.4);
+        float dif = clamp( dot(nor,light), 0.0, 1.0 );
+
+        if (bUseShadow)
+        {
+            float shadow = softShadow(pos, light);
+            dif *= shadow;
+        }
+
         float amb = 0.5 + 0.5*dot(nor,float3(0.0,0.8,0.6));
         col = float3(0.2,0.3,0.4)*amb + float3(0.8,0.7,0.5)*dif;
 
@@ -121,6 +144,8 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
             col = pos;
         else if (bShowNormal)
             col = nor;
+
+
     }
 
     // gamma
