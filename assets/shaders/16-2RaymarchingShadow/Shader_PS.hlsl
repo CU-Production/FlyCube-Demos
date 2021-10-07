@@ -34,7 +34,7 @@ float sdSphere( float3 p, float s )
 float sdPlane( float3 p, float h )
 {
   // n must be normalized
-  return -p.y + h;
+  return p.y + h;
 }
 
 float sdPlane( float3 p, float3 n, float h )
@@ -62,19 +62,15 @@ float3 calcNormal( in float3 pos )
 {
     float2 e = float2(1.0,-1.0)*0.5773;
     const float eps = 0.0005;
-    float3 res = normalize( e.xyy*map( pos + e.xyy*eps ) +
-				        	e.yyx*map( pos + e.yyx*eps ) +
-					        e.yxy*map( pos + e.yxy*eps ) +
-					        e.xxx*map( pos + e.xxx*eps ) );
-	res.y = -res.y; // HLSL need flip Y
-	return res;
+    return normalize( e.xyy*map( pos + e.xyy*eps ) +
+				      e.yyx*map( pos + e.yyx*eps ) +
+					  e.yxy*map( pos + e.yxy*eps ) +
+					  e.xxx*map( pos + e.xxx*eps ) );
 }
 
 float softShadow ( in float3 ro, in float3 rd )
 {
     float res = 1.0;
-
-    rd.y *= -1.0;
 
     [loop]
     for (float t = 0.1; t < 8.0;)
@@ -91,7 +87,7 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
 {
     // camera movement
 	float an = 0.5*(iTime-10.0);
-	float3 ro = float3( 1.0*cos(an), -0.4, 1.0*sin(an) ); // rayOrigin
+	float3 ro = float3( 1.0*cos(an), 0.4, 1.0*sin(an) ); // rayOrigin
     float3 ta = float3( 0.0, 0.0, 0.0 );
     // camera matrix
     float3 ww = normalize( ta - ro );
@@ -99,6 +95,7 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
     float3 vv = normalize( cross(uu,ww));
 
     float aspect = iResolution.x / iResolution.y;
+    input.uv.y = 1.0 - input.uv.y; // HLSL need flip Y
     float2 p = float2(aspect, 1.0) * (input.uv * 2.0 - (float2)1.0);
     // create view ray
     float3 rd = normalize(p.x*uu + p.y*vv + 1.5*ww); // rayDirection
