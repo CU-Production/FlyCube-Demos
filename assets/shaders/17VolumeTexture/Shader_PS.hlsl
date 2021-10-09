@@ -1,0 +1,90 @@
+// https://docs.unity3d.com/Manual/class-Texture3D.html
+
+// Maximum amount of raymarching samples
+#define MAX_STEP_COUNT 128
+
+// Allowed floating point inaccuracy
+#define EPSILON 0.00001f
+
+struct VS_OUTPUT
+{
+    float4 vertex : SV_POSITION;
+    float3 objectVertex : TEXCOORD0;
+    float3 vectorToSurface : TEXCOORD1;
+};
+
+cbuffer Constants
+{
+    float4x4 WorldToObj;
+};
+
+cbuffer Settings
+{
+    float volumeAlpha;
+    float stepSize;
+};
+
+Texture3D volumeTexture;
+// Texture2D volumeSlicesTexture;
+SamplerState g_sampler;
+
+float min3(float a, float b, float c)
+{
+    return min(a, min(b, c));
+}
+
+float max3(float a, float b, float c)
+{
+    return max(a, max(b, c));
+}
+
+float4 BlendUnder(float4 color, float4 newColor)
+{
+    color.rgb += (1.0 - color.a) * newColor.a * newColor.rgb;
+    color.a += (1.0 - color.a) * newColor.a;
+    return color;
+}
+
+float4 mainPS(VS_OUTPUT input) : SV_TARGET
+{
+    // float4 col = float4(input.uv, 0.0, 1.0);
+    // return float4(input.uv, 0.0, 1.0);
+    // return float4(input.objectVertex, volumeAlpha);
+
+    // Start raymarching at the front surface of the object
+    float3 rayOrigin = input.objectVertex;
+
+    // Use vector from camera to object surface to get ray direction
+//     float3 rayDirection = mul(float4(normalize(input.vectorToSurface), 1), World).xyz;
+    float3 rayDirection = mul(float4(normalize(input.vectorToSurface), 1), WorldToObj).xyz;
+
+    float4 color = float4(0, 0, 0, 0);
+    float3 samplePosition = rayOrigin;
+
+    // Raymarch through object space
+    [loop]
+    for (int i = 0; i < MAX_STEP_COUNT; i++)
+    {
+        // Accumulate color only within unit cube bounds
+        if(max3(abs(samplePosition.x), abs(samplePosition.y), abs(samplePosition.z)) < 0.5f + EPSILON)
+        {
+            float4 sampledColor = volumeTexture.Sample(g_sampler, samplePosition + float3(0.5f, 0.5f, 0.5f));
+//             float4 sampledColor = volumeTexture.Sample(g_sampler, samplePosition);
+//             float4 sampledColor = float4(1.0, 1.0, 1.0, 0.5);
+            sampledColor.a *= volumeAlpha;
+            color = BlendUnder(color, sampledColor);
+            samplePosition += rayDirection * stepSize;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return color;
+
+//     float4 sampledColor = volumeTexture.Sample(g_sampler, float3(samplePosition.xy + float2(0.5f, 0.5f), 0.5f));
+//     return float4(sampledColor.xyz, volumeAlpha);
+
+
+//     return volumeSlicesTexture.Sample(g_sampler, input.objectVertex.xy);
+}
