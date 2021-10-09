@@ -47,15 +47,10 @@ float4 BlendUnder(float4 color, float4 newColor)
 
 float4 mainPS(VS_OUTPUT input) : SV_TARGET
 {
-    // float4 col = float4(input.uv, 0.0, 1.0);
-    // return float4(input.uv, 0.0, 1.0);
-    // return float4(input.objectVertex, volumeAlpha);
-
     // Start raymarching at the front surface of the object
     float3 rayOrigin = input.objectVertex;
 
     // Use vector from camera to object surface to get ray direction
-//     float3 rayDirection = mul(float4(normalize(input.vectorToSurface), 1), World).xyz;
     float3 rayDirection = mul(float4(normalize(input.vectorToSurface), 1), WorldToObj).xyz;
 
     float4 color = float4(0, 0, 0, 0);
@@ -69,8 +64,6 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
         if(max3(abs(samplePosition.x), abs(samplePosition.y), abs(samplePosition.z)) < 0.5f + EPSILON)
         {
             float4 sampledColor = volumeTexture.Sample(g_sampler, samplePosition + float3(0.5f, 0.5f, 0.5f));
-//             float4 sampledColor = volumeTexture.Sample(g_sampler, samplePosition);
-//             float4 sampledColor = float4(1.0, 1.0, 1.0, 0.5);
             sampledColor.a *= volumeAlpha;
             color = BlendUnder(color, sampledColor);
             samplePosition += rayDirection * stepSize;
@@ -81,10 +74,4 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
         }
     }
     return color;
-
-//     float4 sampledColor = volumeTexture.Sample(g_sampler, float3(samplePosition.xy + float2(0.5f, 0.5f), 0.5f));
-//     return float4(sampledColor.xyz, volumeAlpha);
-
-
-//     return volumeSlicesTexture.Sample(g_sampler, input.objectVertex.xy);
 }

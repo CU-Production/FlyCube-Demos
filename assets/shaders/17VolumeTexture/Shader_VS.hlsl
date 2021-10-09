@@ -21,11 +21,6 @@ struct VS_OUTPUT
 
 VS_OUTPUT mainVS(VS_INPUT input)
 {
-    // VS_OUTPUT output;
-    // output.pos = mul(float4(input.pos, 1.0f), WorldViewProj);
-    // output.uv = input.uv;
-    // return output;
-
     VS_OUTPUT o;
 
     // Vertex in object space this will be the starting point of raymarching

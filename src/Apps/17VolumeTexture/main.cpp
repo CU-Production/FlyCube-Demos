@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <SOIL.h>
 
-#include "ProgramRef/ShaderPS.h"
-#include "ProgramRef/ShaderVS.h"
+#include "ProgramRef/Shader_PS.h"
+#include "ProgramRef/Shader_VS.h"
 #include "ProgramRef/VolumeTexGen.h"
 
 // ImGui
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     camera.SetCameraPos(glm::vec3(0.0, 0.0, 1.0));
     camera.SetViewport(rect.width, rect.height);
     camera.movement_speed_ = 1.0f;
-
+    camera.z_near_ = 0.001f;
 
     Model model(*device, *upload_command_list, ASSETS_PATH"model/cube.obj");
     model.matrix = glm::scale(glm::vec3(0.1f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::rotate(glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     upload_command_list->Close();
     device->ExecuteCommandLists({ upload_command_list });
 
-    ProgramHolder<ShaderPS, ShaderVS> program(*device);
+    ProgramHolder<Shader_PS, Shader_VS> program(*device);
     ProgramHolder<VolumeTexGen> programCS(*device);
 
     std::vector<std::shared_ptr<RenderCommandList>> command_lists;
@@ -193,7 +193,6 @@ int main(int argc, char* argv[])
                 command_lists[frameIndex]->Attach(program.ps.cbv.Settings, program.ps.cbuffer.Settings);
                 command_lists[frameIndex]->Attach(program.ps.sampler.g_sampler, sampler);
                 command_lists[frameIndex]->Attach(program.ps.srv.volumeTexture, uav);
-//                command_lists[frameIndex]->Attach(program.ps.srv.volumeSlicesTexture, volumeTextureSlice);
                 command_lists[frameIndex]->DrawIndexed(range.index_count, 1, range.start_index_location, range.base_vertex_location, 0);
             }
             command_lists[frameIndex]->EndRenderPass();
