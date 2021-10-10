@@ -31,3 +31,4 @@ add_subdirectory(16-4CSRaymarching)
 
 add_subdirectory(17VolumeTexture)
 add_subdirectory(17-2VolumeRender)
+add_subdirectory(17-3VolumeTexture2D)
