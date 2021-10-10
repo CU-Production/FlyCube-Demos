@@ -22,6 +22,7 @@ cbuffer Settings
 {
     float volumeAlpha;
     float stepSize;
+    int maxStepCount;
 };
 
 Texture3D volumeTexture;
@@ -58,7 +59,7 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
 
     // Raymarch through object space
     [loop]
-    for (int i = 0; i < MAX_STEP_COUNT; i++)
+    for (int i = 0; i < maxStepCount; i++)
     {
         // Accumulate color only within unit cube bounds
         if(max3(abs(samplePosition.x), abs(samplePosition.y), abs(samplePosition.z)) < 0.5f + EPSILON)

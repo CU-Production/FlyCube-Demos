@@ -103,6 +103,7 @@ int main(int argc, char* argv[])
 
     float alpha = 0.2f;
     float stepSize = 0.01;
+    int maxStepCount = 128;
 
     while (!app.PollEvents())
     {
@@ -170,6 +171,7 @@ int main(int argc, char* argv[])
 
             program.ps.cbuffer.Settings.volumeAlpha = alpha;
             program.ps.cbuffer.Settings.stepSize = stepSize;
+            program.ps.cbuffer.Settings.maxStepCount = maxStepCount;
             program.ps.cbuffer.Constants.WorldToObj = glm::inverse(glm::transpose(model.matrix));
 
             // Main Pass
@@ -215,8 +217,9 @@ int main(int argc, char* argv[])
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
                 ImGui::Text("Parameters.");
-                ImGui::SliderFloat("alpha", &alpha, 0.0f, 1.0f, "ratio = %.3f");
-                ImGui::SliderFloat("setpsize", &stepSize, 0.0f, 0.01f, "ratio = %.4f");
+                ImGui::SliderFloat("alpha", &alpha, 0.0f, 1.0f, "alpha = %.3f");
+                ImGui::SliderFloat("setpsize", &stepSize, 0.0f, 0.01f, "setpsize = %.4f");
+                ImGui::SliderInt("maxStepCount", &maxStepCount, 1, 256);
 
                 ImGui::End();
             }
