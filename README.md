@@ -72,3 +72,7 @@ Download FlyCude src and copy to 3rdparty.
 ## 17 - VolumeTexture
 
 ![17 - VolumeTexture](screenshots/Snipaste_2021-10-10_04-18-06.png)
+
+## 17.2 - Volume with noise & gamma
+
+![17.2 - Volume with noise & gamma](screenshots/Snipaste_2021-10-10_13-11-04.png)
