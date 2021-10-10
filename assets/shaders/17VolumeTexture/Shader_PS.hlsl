@@ -74,5 +74,9 @@ float4 mainPS(VS_OUTPUT input) : SV_TARGET
             break;
         }
     }
+
+    // Gamma
+    color.rgb = pow( color.rgb, 1.0f/2.2f );
+
     return color;
 }
