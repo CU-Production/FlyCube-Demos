@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     camera.movement_speed_ = 1.0f;
     camera.z_near_ = 0.001f;
 
-    Model model(*device, *upload_command_list, ASSETS_PATH"model/cube.obj");
+    Model model(*device, *upload_command_list, ASSETS_PATH"volume/cube.obj");
     model.matrix = glm::scale(glm::vec3(0.1f)) * glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) * glm::rotate(glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // ImGui
