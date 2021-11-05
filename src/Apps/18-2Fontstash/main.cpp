@@ -152,32 +152,12 @@ int main(int argc, char* argv[])
     app.SetGpuName(device->GetGpuName());
 
     std::shared_ptr<RenderCommandList> upload_command_list = device->CreateRenderCommandList();
-    std::vector<uint32_t> ibuf = { 0, 1, 2, 0, 2, 3 };
-    std::shared_ptr<Resource> index = device->CreateBuffer(BindFlag::kIndexBuffer | BindFlag::kCopyDest, sizeof(uint32_t) * ibuf.size());
-    upload_command_list->UpdateSubresource(index, 0, ibuf.data(), 0, 0);
-    std::vector<glm::vec2> pbuf = {
-            glm::vec2(-0.5,  0.5),
-            glm::vec2( 0.5,  0.5),
-            glm::vec2( 0.5, -0.5),
-            glm::vec2(-0.5, -0.5),
-    };
-    std::vector<glm::vec2> uvbuf = {
-            glm::vec2(0.0, 0.0),
-            glm::vec2(1.0, 0.0),
-            glm::vec2(1.0, 1.0),
-            glm::vec2(0.0, 1.0),
-    };
-    std::shared_ptr<Resource> pos = device->CreateBuffer(BindFlag::kVertexBuffer | BindFlag::kCopyDest, sizeof(glm::vec2) * pbuf.size());
-    upload_command_list->UpdateSubresource(pos, 0, pbuf.data(), 0, 0);
-    std::shared_ptr<Resource> uv = device->CreateBuffer(BindFlag::kVertexBuffer | BindFlag::kCopyDest, sizeof(glm::vec2) * uvbuf.size());
-    upload_command_list->UpdateSubresource(uv, 0, uvbuf.data(), 0, 0);
 
     std::shared_ptr<Resource> g_sampler = device->CreateSampler({
         SamplerFilter::kAnisotropic,
         SamplerTextureAddressMode::kWrap,
         SamplerComparisonFunc::kNever
     });
-    std::shared_ptr<Resource> diffuseTexture = CreateTexture(*device, *upload_command_list, ASSETS_PATH"model/export3dcoat/export3dcoat_lambert3SG_color.dds");
 
     upload_command_list->Close();
     device->ExecuteCommandLists({ upload_command_list });
@@ -277,9 +257,6 @@ int main(int argc, char* argv[])
 
         command_lists[frameIndex]->UseProgram(program);
         command_lists[frameIndex]->SetViewport(0, 0, rect.width, rect.height);
-        command_lists[frameIndex]->IASetIndexBuffer(index, gli::format::FORMAT_R32_UINT_PACK32);
-        command_lists[frameIndex]->IASetVertexBuffer(program.vs.ia.POSITION, pos);
-        command_lists[frameIndex]->IASetVertexBuffer(program.vs.ia.TEXCOORD, uv);
         command_lists[frameIndex]->Attach(program.ps.srv.diffuseTexture, fc->fontTexture);
         command_lists[frameIndex]->Attach(program.ps.sampler.g_sampler, g_sampler);
         command_lists[frameIndex]->Attach(program.vs.cbv.vertexBuffer, program.vs.cbuffer.vertexBuffer);
