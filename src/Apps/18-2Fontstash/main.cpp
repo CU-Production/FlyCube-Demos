@@ -15,7 +15,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #define FONTSTASH_IMPLEMENTATION
-//#define FONS_USE_FREETYPE
+#define FONS_USE_FREETYPE
 #include "fontstash.h"
 
 #ifndef _FC_UNUSED
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
     //program.ps.cbuffer.Settings.color = glm::vec4(1, 0, 0, 1);
 
     // Fontstash demo
-    int debug = 0;
+    int debug = 1;
 
     int fontNormal = FONS_INVALID;
     int fontItalic = FONS_INVALID;
