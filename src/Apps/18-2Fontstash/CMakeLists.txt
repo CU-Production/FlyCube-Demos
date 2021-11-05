@@ -51,6 +51,7 @@ target_link_libraries(${target}
     AppBox
     RenderDevice
     Texture
+    Geometry
 )
 
 set_target_properties(${target} PROPERTIES FOLDER "Apps")

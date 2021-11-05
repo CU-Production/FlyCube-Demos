@@ -5,6 +5,7 @@
 #include <Utilities/FormatHelper.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <Geometry/IABuffer.h>
 
 #include <ProgramRef/Shader_PS.h>
 #include <ProgramRef/Shader_VS.h>
@@ -30,10 +31,11 @@ struct FCFONScontext {
     std::shared_ptr<RenderDevice> device;
     int width, height;
 
-    std::shared_ptr<Resource> index;
-    std::shared_ptr<Resource> pos;
-    std::shared_ptr<Resource> uv;
-    std::shared_ptr<Resource> color;
+    std::array<std::unique_ptr<IAVertexBuffer>, 3> positions_buffer;
+    std::array<std::unique_ptr<IAVertexBuffer>, 3> texcoords_buffer;
+    std::array<std::unique_ptr<IAVertexBuffer>, 3> colors_buffer;
+    std::array<std::unique_ptr<IAIndexBuffer>, 3> indices_buffer;
+    int frameIndex;
 
     uint32_t posSlot;
     uint32_t uvSlot;
@@ -80,6 +82,8 @@ static void FCfons__renderDraw(void* userPtr, const float* verts, const float* t
 
     std::vector<uint32_t> ibuf(nverts);
     std::vector<glm::vec4> colorBuf(nverts);
+    std::vector<glm::vec2> posBuf(nverts);
+    std::vector<glm::vec2> uvBuf(nverts);
     for (int i = 0; i < nverts; i++)
     {
         // index
@@ -91,24 +95,21 @@ static void FCfons__renderDraw(void* userPtr, const float* verts, const float* t
         b = colors[i] >> 16;
         a = colors[i] >> 24;
         colorBuf[i] = glm::vec4(r * inv255, g * inv255, b * inv255, a * inv255);
+        // pos
+        posBuf[i] = glm::vec2(verts[i * 2 + 0], verts[i * 2 + 1]);
+        //uv
+        uvBuf[i] = glm::vec2(tcoords[i * 2 + 0], tcoords[i * 2 + 1]);
     }
 
-    fc->pos = fc->device->CreateBuffer(BindFlag::kVertexBuffer | BindFlag::kShaderResource | BindFlag::kCopyDest, sizeof(glm::vec2) * nverts);
-    fc->cmd_list->UpdateSubresource(fc->pos, 0, verts, 0, 0);
+    fc->positions_buffer[fc->frameIndex].reset(new IAVertexBuffer(*fc->device, *fc->cmd_list, posBuf));
+    fc->texcoords_buffer[fc->frameIndex].reset(new IAVertexBuffer(*fc->device, *fc->cmd_list, uvBuf));
+    fc->colors_buffer[fc->frameIndex].reset(new IAVertexBuffer(*fc->device, *fc->cmd_list, colorBuf));
+    fc->indices_buffer[fc->frameIndex].reset(new IAIndexBuffer(*fc->device, *fc->cmd_list, ibuf, gli::format::FORMAT_R32_UINT_PACK32));
 
-    fc->uv = fc->device->CreateBuffer(BindFlag::kVertexBuffer | BindFlag::kShaderResource | BindFlag::kCopyDest, sizeof(glm::vec2) * nverts);
-    fc->cmd_list->UpdateSubresource(fc->uv, 0, tcoords, 0, 0);
-
-    fc->color = fc->device->CreateBuffer(BindFlag::kVertexBuffer | BindFlag::kShaderResource | BindFlag::kCopyDest, sizeof(glm::vec4) * nverts);
-    fc->cmd_list->UpdateSubresource(fc->color, 0, colorBuf.data(), 0, 0);
-
-    fc->index = fc->device->CreateBuffer(BindFlag::kIndexBuffer | BindFlag::kCopyDest, sizeof(uint32_t) * ibuf.size());
-    fc->cmd_list->UpdateSubresource(fc->index, 0, ibuf.data(), 0, 0);
-
-    fc->cmd_list->IASetIndexBuffer(fc->index, gli::format::FORMAT_R32_UINT_PACK32);
-    fc->cmd_list->IASetVertexBuffer(fc->posSlot, fc->pos);
-    fc->cmd_list->IASetVertexBuffer(fc->uvSlot, fc->uv);
-    fc->cmd_list->IASetVertexBuffer(fc->colorSlot, fc->color);
+    fc->indices_buffer[fc->frameIndex]->Bind(*fc->cmd_list);
+    fc->positions_buffer[fc->frameIndex]->BindToSlot(*fc->cmd_list, fc->posSlot);
+    fc->texcoords_buffer[fc->frameIndex]->BindToSlot(*fc->cmd_list, fc->uvSlot);
+    fc->colors_buffer[fc->frameIndex]->BindToSlot(*fc->cmd_list, fc->colorSlot);
 
     fc->cmd_list->DrawIndexed(nverts, 1, 0, 0, 0);
 }
@@ -125,12 +126,10 @@ void sfons_flush(FONScontext* ctx) {
     if (fc->bFontTextureNeedUpdate)
     {
         // Update fontTexture
-
         size_t row_bytes = 0;
         size_t num_bytes = 0;
         GetFormatInfo(fc->width, fc->height, fc->fontTexFormat, num_bytes, row_bytes);
         fc->cmd_list->UpdateSubresource(fc->fontTexture, 0, ctx->texData, row_bytes, num_bytes);
-
         fc->bFontTextureNeedUpdate = false;
     }
 }
@@ -267,6 +266,7 @@ int main(int argc, char* argv[])
         device->Wait(command_lists[frameIndex]->GetFenceValue());
         command_lists[frameIndex]->Reset();
 
+        fc->frameIndex = frameIndex;
         fc->cmd_list = command_lists[frameIndex];
 
         RenderPassBeginDesc render_pass_desc = {};
@@ -360,11 +360,14 @@ int main(int argc, char* argv[])
             fonsSetColor(fs, white);
             fonsDrawText(fs, dx,dy,"Ég get etið gler án þess að meiða mig.",NULL);
 
-//            fonsVertMetrics(fs, NULL,NULL,&lh);
-//            dx = sx;
-//            dy += lh*1.2f;
-//            fonsSetFont(fs, fontJapanese);
-//            fonsDrawText(fs, dx,dy,"私はガラスを食べられます。それは私を傷つけません。",NULL);
+            fonsVertMetrics(fs, NULL,NULL,&lh);
+            dx = sx;
+            dy += lh*1.2f;
+            fonsSetFont(fs, fontJapanese);
+            const char* japChar = R"(
+"私はガラスを食べられます。それは私を傷つけません。"
+)";
+            fonsDrawText(fs, dx,dy, japChar, NULL);
 
             // Font alignment
             fonsSetSize(fs, 18.0f);
