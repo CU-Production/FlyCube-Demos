@@ -47,14 +47,11 @@ target_include_directories(${target}
         ${CMAKE_BINARY_DIR}/gen/${target}
 )
 
-find_package(freetype CONFIG REQUIRED)
-
 target_link_libraries(${target}
     AppBox
     RenderDevice
     Texture
     Geometry
-    freetype
 )
 
 set_target_properties(${target} PROPERTIES FOLDER "Apps")
