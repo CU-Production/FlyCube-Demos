@@ -84,3 +84,7 @@ Download FlyCude src and copy to 3rdparty.
 ## 18.2 - Fontstash
 
 ![18.2 - Fontstash](screenshots/Snipaste_2021-11-06_00-40-56.png)
+
+## 19 - CS Skinning
+
+![19 - CS Skinning](screenshots/Snipaste_2021-11-20_22-33-59.png)
