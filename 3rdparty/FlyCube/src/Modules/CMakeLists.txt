@@ -1,0 +1,6 @@
+add_subdirectory(AppBox)
+add_subdirectory(Camera)
+add_subdirectory(Geometry)
+add_subdirectory(Texture)
+add_subdirectory(Utilities)
+add_subdirectory(WinConsole)

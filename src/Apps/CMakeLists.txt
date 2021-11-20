@@ -35,3 +35,5 @@ add_subdirectory(17-3VolumeTexture2D)
 
 add_subdirectory(18Font)
 add_subdirectory(18-2Fontstash)
+
+add_subdirectory(19CSSkinning)
