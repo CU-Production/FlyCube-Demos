@@ -11,9 +11,9 @@ const static float ParticleInvMass = 1.0 / 0.1;
 // const static float SpringK = 2000.0;
 const static float SpringK = 200.0;
 // const static float DeltaT = 0.000005;
-const static float DeltaT = 0.00167;
+const static float DeltaT = 0.0034;
 // const static float DampingConst = 0.1;
-const static float DampingConst = 3.5;
+const static float DampingConst = 5.5;
 // const static float DampingConst = 10.4;
 const static uint2 ParticleCount = uint2(40, 40);
 

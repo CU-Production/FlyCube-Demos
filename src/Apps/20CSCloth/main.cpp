@@ -88,8 +88,8 @@ int main(int argc, char* argv[])
     for (int i = 0; i < ParticleCountY; ++i) {
         for (int j = 0; j < ParticleCountX; ++j) {
             p.x = dx * j;
-            p.y = dy * i;
-            p.z = 0.0f;
+            p.z = -dy * i;
+            p.y = 0.0f;
             initPos.push_back(p);
             initTc.emplace_back(ds * j, dt * i);
         }
