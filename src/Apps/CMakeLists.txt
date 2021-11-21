@@ -37,3 +37,4 @@ add_subdirectory(18Font)
 add_subdirectory(18-2Fontstash)
 
 add_subdirectory(19CSSkinning)
+add_subdirectory(20CSCloth)
