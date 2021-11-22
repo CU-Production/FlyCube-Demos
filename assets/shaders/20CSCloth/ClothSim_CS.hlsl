@@ -8,13 +8,9 @@ cbuffer constants
 
 const static float ParticleMass = 0.1;
 const static float ParticleInvMass = 1.0 / 0.1;
-// const static float SpringK = 2000.0;
-const static float SpringK = 200.0;
-// const static float DeltaT = 0.000005;
-const static float DeltaT = 0.0034;
-// const static float DampingConst = 0.1;
-const static float DampingConst = 5.5;
-// const static float DampingConst = 10.4;
+const static float SpringK = 2000.0;
+const static float DeltaT = 0.00005;
+const static float DampingConst = 0.2;
 const static uint2 ParticleCount = uint2(40, 40);
 
 StructuredBuffer<float3> in_position;
@@ -26,6 +22,8 @@ RWStructuredBuffer<float3> out_velocity;
 [numthreads(8, 8, 1)]
 void mainCS(uint3 threadId : SV_DispatchthreadId, uint groupId : SV_GroupIndex, uint3 dispatchId : SV_GroupID)
 {
+    if (threadId.x >= ParticleCount.x || threadId.y >= ParticleCount.y) return;
+
     uint idx = threadId.y * ParticleCount.x + threadId.x;
 
     float3 p = in_position[idx];

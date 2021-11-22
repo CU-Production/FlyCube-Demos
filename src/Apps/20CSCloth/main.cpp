@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
         command_lists[frameIndex]->Reset();
         {
             // CS Simulation pass
-            clothIdx = 1 - clothIdx;
+
 
             clothSimProgram.cs.cbuffer.constants.gravity = glm::vec3(0.0f, -9.8f, 0.0f);
 //            clothSimProgram.cs.cbuffer.constants.gravity = glm::vec3(0.0f, -0.98f, 0.0f);
@@ -216,23 +216,26 @@ int main(int argc, char* argv[])
             command_lists[frameIndex]->UseProgram(clothSimProgram);
             command_lists[frameIndex]->Attach(clothSimProgram.cs.cbv.constants, clothSimProgram.cs.cbuffer.constants);
 
-            if (firstSimulateFrame)
-            {
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_position, cloth_vertex_buffer[clothIdx]->GetBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_velocity, cloth_velocity_buffer[clothIdx]->GetBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_position, cloth_vertex_buffer[1-clothIdx]->GetDynamicBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_velocity, cloth_velocity_buffer[1-clothIdx]->GetDynamicBuffer());
-                firstSimulateFrame = false;
-            }
-            else
-            {
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_position, cloth_vertex_buffer[clothIdx]->GetDynamicBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_velocity, cloth_velocity_buffer[clothIdx]->GetDynamicBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_position, cloth_vertex_buffer[1-clothIdx]->GetDynamicBuffer());
-                command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_velocity, cloth_velocity_buffer[1-clothIdx]->GetDynamicBuffer());
+            for (int i = 0; i < 100; ++i) {
+                clothIdx = 1 - clothIdx;
+                if (firstSimulateFrame)
+                {
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_position, cloth_vertex_buffer[clothIdx]->GetBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_velocity, cloth_velocity_buffer[clothIdx]->GetBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_position, cloth_vertex_buffer[1-clothIdx]->GetDynamicBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_velocity, cloth_velocity_buffer[1-clothIdx]->GetDynamicBuffer());
+                    firstSimulateFrame = false;
+                }
+                else
+                {
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_position, cloth_vertex_buffer[clothIdx]->GetDynamicBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.srv.in_velocity, cloth_velocity_buffer[clothIdx]->GetDynamicBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_position, cloth_vertex_buffer[1-clothIdx]->GetDynamicBuffer());
+                    command_lists[frameIndex]->Attach(clothSimProgram.cs.uav.out_velocity, cloth_velocity_buffer[1-clothIdx]->GetDynamicBuffer());
+                }
+                command_lists[frameIndex]->Dispatch((ParticleCountX + 8 - 1) / 8, (ParticleCountY + 8 - 1) / 8, 1);
             }
 
-            command_lists[frameIndex]->Dispatch((ParticleCountX + 8 - 1) / 8, (ParticleCountY + 8 - 1) / 8, 1);
             command_lists[frameIndex]->EndEvent();
         }
         {
